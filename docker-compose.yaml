@@ -64,6 +64,10 @@ services:
 
   gps_exporter:
     image: ghcr.io/scarjit/time-monitor:latest
+    environment:
+      - GPSD_HOST=127.0.0.1
+      - GPSD_PORT=2947
+      - EXPORTER_PORT=9015
     container_name: gps_exporter
     network_mode: host
     restart: unless-stopped
