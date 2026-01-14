@@ -61,6 +61,9 @@ jobs:
         platform: [linux/amd64, linux/arm64]
 
     steps:
+      - name: Lowercase image name
+        run: echo "IMAGE_NAME=${IMAGE_NAME,,}" >>${GITHUB_ENV}
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -88,28 +91,23 @@ jobs:
             type=sha
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build and push by digest
+      - name: Build and export
         id: build
         uses: docker/build-push-action@v6
         with:
           context: ./gps_exporter_rs
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ strategy.job-index }}
+          outputs: type=docker,dest=/tmp/image.tar
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
 
-      - name: Export digest
-        run: |
-          mkdir -p /tmp/digests
-          digest="${{ steps.build.outputs.digest }}"
-          touch "/tmp/digests/${digest#sha256:}"
-
-      - name: Upload digest
+      - name: Upload image
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ strategy.job-index }}
-          path: /tmp/digests/*
+          name: image-${{ strategy.job-index }}
+          path: /tmp/image.tar
           if-no-files-found: error
           retention-days: 1
 
@@ -120,11 +118,14 @@ jobs:
     permissions:
       packages: write
     steps:
-      - name: Download digests
+      - name: Lowercase image name
+        run: echo "IMAGE_NAME=${IMAGE_NAME,,}" >>${GITHUB_ENV}
+
+      - name: Download images
         uses: actions/download-artifact@v4
         with:
-          path: /tmp/digests
-          pattern: digests-*
+          path: /tmp/images
+          pattern: image-*
           merge-multiple: true
 
       - name: Log in to the Container registry
@@ -137,6 +138,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Load images
+        run: |
+          for image in /tmp/images/*.tar; do
+            docker load -i "$image"
+          done
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
@@ -148,11 +155,15 @@ jobs:
             type=sha
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
-      - name: Create manifest list and push
-        working-directory: /tmp/digests
+      - name: Push images and create manifest list
         run: |
+          # Push the architecture-specific images first
+          # They are tagged with :0, :1 etc.
+          docker push --all-tags ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          
+          # Create and push the multi-arch manifest list
           docker buildx imagetools create $(echo "${{ steps.meta.outputs.tags }}" | sed 's/^/--tag /') \
-            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:%s ' *)
+            $(docker image ls --format '{{.Repository}}:{{.Tag}}' | grep "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:[0-9]")
 
       - name: Inspect image
         run: |
