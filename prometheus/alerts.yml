@@ -1,0 +1,94 @@
+groups:
+  - name: chrony_alerts
+    interval: 30s
+    rules:
+      # Chrony service is down
+      - alert: ChronyDown
+        expr: chrony_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Chrony NTP service is down on {{ $labels.instance }}"
+          description: "Chrony exporter cannot reach chronyd daemon. NTP synchronization may be broken."
+
+      # System time offset is too high
+      - alert: HighTimeOffset
+        expr: abs(chrony_tracking_system_time_seconds) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High system time offset on {{ $labels.instance }}"
+          description: "System time offset is {{ $value }}s (threshold: 0.1s). Time sync may be degraded."
+
+      # Critical time offset
+      - alert: CriticalTimeOffset
+        expr: abs(chrony_tracking_system_time_seconds) > 1.0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical system time offset on {{ $labels.instance }}"
+          description: "System time offset is {{ $value }}s (threshold: 1.0s). Immediate attention required!"
+
+      # Stratum too high (poor sync quality)
+      - alert: HighStratum
+        expr: chrony_tracking_stratum > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NTP stratum is high on {{ $labels.instance }}"
+          description: "Current stratum is {{ $value }}. This indicates poor NTP server quality or connectivity issues."
+
+      # Critical stratum (no sync)
+      - alert: CriticalStratum
+        expr: chrony_tracking_stratum >= 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NTP stratum is critical on {{ $labels.instance }}"
+          description: "Current stratum is {{ $value }}. System is likely not synchronized with any NTP source."
+
+      # High frequency offset (clock drift)
+      - alert: HighFrequencyOffset
+        expr: abs(chrony_tracking_frequency_ppms) > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High frequency offset on {{ $labels.instance }}"
+          description: "Frequency offset is {{ $value }} ppm (threshold: 100 ppm). Hardware clock may be drifting."
+
+      # High RMS offset
+      - alert: HighRMSOffset
+        expr: chrony_tracking_rms_offset_seconds > 0.001
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High RMS offset on {{ $labels.instance }}"
+          description: "RMS offset is {{ $value }}s (threshold: 0.001s). Time synchronization quality is degraded."
+
+      # No NTP updates recently
+      - alert: NTPUpdateStalled
+        expr: rate(chrony_tracking_reference_timestamp_seconds[5m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NTP updates have stalled on {{ $labels.instance }}"
+          description: "No NTP reference updates detected in the last 10 minutes. Check network connectivity to NTP servers."
+
+      # High root delay (network latency to NTP server)
+      - alert: HighRootDelay
+        expr: chrony_tracking_root_delay_seconds > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High NTP root delay on {{ $labels.instance }}"
+          description: "Root delay to NTP server is {{ $value }}s (threshold: 0.5s). High network latency detected."
+
