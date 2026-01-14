@@ -39,6 +39,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Run linting
+        run: cargo clippy -- -D warnings
+        working-directory: gps_exporter_rs
+
       - name: Run tests
         run: cargo test --verbose
         working-directory: gps_exporter_rs

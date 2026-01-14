@@ -261,8 +261,8 @@ impl GPSMetricsCollector {
         self.satellite_longitude.reset();
 
         // Update per-satellite metrics
-        if let Some(tpv_data) = tpv {
-            if let (Some(obs_lat), Some(obs_lon)) = (tpv_data.lat, tpv_data.lon) {
+        if let Some(tpv_data) = tpv
+            && let (Some(obs_lat), Some(obs_lon)) = (tpv_data.lat, tpv_data.lon) {
                 for sat in &sky.satellites {
                     let prn = sat.prn.to_string();
                     let gnss = gnss_name(sat.gnssid);
@@ -279,7 +279,6 @@ impl GPSMetricsCollector {
                     self.satellite_longitude.with_label_values(labels).set(sat_lon);
                 }
             }
-        }
     }
 
     pub fn render_metrics(&self) -> anyhow::Result<String> {
