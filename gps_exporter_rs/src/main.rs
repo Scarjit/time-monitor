@@ -50,11 +50,10 @@ async fn main() -> anyhow::Result<()> {
     let collector_clone = Arc::clone(&collector);
     tokio::spawn(async move {
         loop {
-            if let Ok(mut c) = collector_clone.lock() {
-                if let Err(e) = c.update_metrics() {
+            if let Ok(mut c) = collector_clone.lock()
+                && let Err(e) = c.update_metrics() {
                     warn!("Error updating metrics: {}", e);
                 }
-            }
             tokio::time::sleep(Duration::from_secs(5)).await;
         }
     });

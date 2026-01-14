@@ -171,11 +171,10 @@ impl GPSSocket {
                 if let Ok(sky_data) = serde_json::from_slice(line) {
                     maybe_sky_data = Some(sky_data);
                 }
-            } else if line.starts_with(b"{\"class\":\"TPV\"") {
-                if let Ok(tpv_data) = serde_json::from_slice(line) {
+            } else if line.starts_with(b"{\"class\":\"TPV\"")
+                && let Ok(tpv_data) = serde_json::from_slice(line) {
                     maybe_tpv_data = Some(tpv_data);
                 }
-            }
 
             if maybe_sky_data.is_some() && maybe_tpv_data.is_some() {
                 break;
