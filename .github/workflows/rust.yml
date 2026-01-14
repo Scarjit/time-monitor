@@ -24,7 +24,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: apk add --no-cache musl-dev
+        run: |
+          apk add --no-cache musl-dev
+          rustup component add clippy
 
       - name: Cache cargo
         uses: actions/cache@v5
