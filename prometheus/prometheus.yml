@@ -1,0 +1,138 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'chrony-monitor'
+
+rule_files:
+  - 'alerts.yml'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'chrony'
+    static_configs:
+      - targets: ['localhost:9123']
+        labels:
+          instance: 'sopdet'
+          host: 'sopdet'
+
+  - job_name: 'blackbox_exporter'
+    static_configs:
+      - targets: ['localhost:9115']
+
+  # HTTP probe
+  - job_name: 'blackbox_http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - http://one.one.one.one    # Cloudflare
+        - http://google.com         # Google
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
+
+  # HTTPS/TLS probe
+  - job_name: 'blackbox_https'
+    metrics_path: /probe
+    params:
+      module: [https_2xx]
+    static_configs:
+      - targets:
+        - https://one.one.one.one   # Cloudflare
+        - https://google.com        # Google
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
+
+  # HTTPS probe with insecure TLS (self-signed certs)
+  - job_name: 'blackbox_https_insecure'
+    metrics_path: /probe
+    params:
+      module: [https_2xx_insecure]
+    static_configs:
+      - targets:
+        - https://192.168.1.1       # Local Gateway
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
+
+  # TCP probe
+  - job_name: 'blackbox_tcp'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+        - 1.1.1.1:53        # Cloudflare DNS
+        - 8.8.8.8:53        # Google DNS
+        - 192.168.1.1:53    # Local Gateway DNS
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
+
+  # DNS probe
+  - job_name: 'blackbox_dns'
+    metrics_path: /probe
+    params:
+      module: [dns_udp]
+    static_configs:
+      - targets:
+        - 1.1.1.1        # Cloudflare DNS
+        - 8.8.8.8        # Google DNS
+        - 192.168.1.1    # Local Gateway
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
+
+  - job_name: 'smokeping_prober'
+    static_configs:
+      - targets: ['localhost:9374']
+
+  # Smokeping latency probes
+  - job_name: 'smokeping'
+    metrics_path: /probe
+    static_configs:
+      - targets:
+        - 1.1.1.1              # Cloudflare DNS
+        - 8.8.8.8              # Google DNS
+        - 65.21.225.112        # Hetzner Server
+        - 192.168.1.1          # Local Gateway
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9374
+
+  - job_name: 'gps_exporter'
+    static_configs:
+      - targets: ['localhost:9015']
+        labels:
+          instance: 'sopdet'
+          host: 'sopdet'

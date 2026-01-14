@@ -1,0 +1,17 @@
+# Rust
+/gps_exporter_rs/target/
+*.pdb
+Cargo.lock
+
+# JetBrains IDEs
+.idea/
+
+# Prometheus
+prometheus/data/
+
+# Grafana
+grafana/data/
+
+# OS
+.DS_Store
+Thumbs.db

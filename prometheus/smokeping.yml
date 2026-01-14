@@ -1,0 +1,10 @@
+targets:
+  - hosts:
+      - 1.1.1.1
+      - 8.8.8.8
+      - 65.21.225.112
+      - 192.168.1.1
+    interval: 1s
+    network: ip
+    protocol: icmp
+    size: 56

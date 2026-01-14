@@ -1,0 +1,73 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    user: '0'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ./prometheus/data:/prometheus
+    network_mode: host
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    user: '0'
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_UNIFIED_ALERTING_ENABLED=true
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  chrony_exporter:
+    image: quay.io/superq/chrony-exporter:latest
+    container_name: chrony_exporter
+    command:
+      - '--chrony.address=127.0.0.1:323'
+    network_mode: host
+    restart: unless-stopped
+
+  blackbox_exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox_exporter
+    volumes:
+      - ./prometheus/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+    network_mode: host
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/blackbox_exporter/config.yml'
+
+  smokeping_prober:
+    image: quay.io/superq/smokeping-prober:latest
+    container_name: smokeping_prober
+    volumes:
+      - ./prometheus/smokeping.yml:/etc/smokeping_prober/config.yml:ro
+    network_mode: host
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/smokeping_prober/config.yml'
+      - '--privileged'
+
+  gps_exporter:
+    build: ./gps_exporter
+    container_name: gps_exporter
+    network_mode: host
+    restart: unless-stopped
+
+networks:
+  monitoring:
+    driver: bridge
