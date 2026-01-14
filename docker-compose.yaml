@@ -63,7 +63,7 @@ services:
       - '--privileged'
 
   gps_exporter:
-    build: ./gps_exporter_rs
+    image: ghcr.io/scarjit/time-monitor:latest
     container_name: gps_exporter
     network_mode: host
     restart: unless-stopped
