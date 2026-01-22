@@ -8,7 +8,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: scarjit/time-monitor
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -19,6 +18,9 @@ jobs:
         target:
           - x86_64-unknown-linux-musl
           - aarch64-unknown-linux-musl
+        package:
+          - gps_exporter_rs
+          - rinex_exporter_rs
     steps:
       - uses: actions/checkout@v4
 
@@ -34,14 +36,13 @@ jobs:
         uses: goto-bus-stop/setup-zig@v2
 
       - name: Build binary
-        run: cargo zigbuild --release --target ${{ matrix.target }}
-        working-directory: gps_exporter_rs
+        run: cargo zigbuild --release --target ${{ matrix.target }} -p ${{ matrix.package }}
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: bin-${{ matrix.target }}
-          path: gps_exporter_rs/target/${{ matrix.target }}/release/gps_exporter_rs
+          name: ${{ matrix.package }}-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/${{ matrix.package }}
 
   build-and-push-docker:
     needs: build-binaries
@@ -49,23 +50,29 @@ jobs:
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        package:
+          - gps_exporter_rs
+          - rinex_exporter_rs
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download all binaries
+      - name: Download binaries for package
         uses: actions/download-artifact@v4
         with:
-          path: gps_exporter_rs/target
+          pattern: ${{ matrix.package }}-*
+          path: ${{ matrix.package }}/target
           merge-multiple: false
 
       - name: Move binaries to expected paths
         run: |
-          mkdir -p gps_exporter_rs/target/x86_64-unknown-linux-musl/release
-          mkdir -p gps_exporter_rs/target/aarch64-unknown-linux-musl/release
-          mv gps_exporter_rs/target/bin-x86_64-unknown-linux-musl/gps_exporter_rs gps_exporter_rs/target/x86_64-unknown-linux-musl/release/
-          mv gps_exporter_rs/target/bin-aarch64-unknown-linux-musl/gps_exporter_rs gps_exporter_rs/target/aarch64-unknown-linux-musl/release/
+          mkdir -p ${{ matrix.package }}/target/x86_64-unknown-linux-musl/release
+          mkdir -p ${{ matrix.package }}/target/aarch64-unknown-linux-musl/release
+          mv ${{ matrix.package }}/target/${{ matrix.package }}-x86_64-unknown-linux-musl/${{ matrix.package }} ${{ matrix.package }}/target/x86_64-unknown-linux-musl/release/
+          mv ${{ matrix.package }}/target/${{ matrix.package }}-aarch64-unknown-linux-musl/${{ matrix.package }} ${{ matrix.package }}/target/aarch64-unknown-linux-musl/release/
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -81,7 +88,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/scarjit/${{ matrix.package }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -92,7 +99,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./gps_exporter_rs
+          context: ./${{ matrix.package }}
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
