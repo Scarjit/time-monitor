@@ -8,6 +8,7 @@
 
 mod decompress;
 mod download;
+mod parse;
 
 use clap::Parser;
 use tracing::info;
@@ -76,6 +77,9 @@ async fn main() -> anyhow::Result<()> {
     .await?;
 
     decompress::uncompress_rinex_data(&args.data_dir).await?;
+
+    info!("Parsing RINEX data to JSON...");
+    parse::parse_rinex_data(&args.data_dir)?;
 
     Ok(())
 }

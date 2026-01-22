@@ -17,6 +17,10 @@ grafana/data/
 # RINEX
 rinex_exporter_rs/data
 
+# Test data
+rinex_exporter_rs/test_data/json
+rinex_exporter_rs/test_data/compressed
+
 # OS
 .DS_Store
 Thumbs.db
