@@ -72,6 +72,12 @@ services:
     network_mode: host
     restart: unless-stopped
 
+  pushgateway:
+    image: prom/pushgateway:latest
+    container_name: pushgateway
+    network_mode: host
+    restart: unless-stopped
+
 networks:
   monitoring:
     driver: bridge

@@ -1,7 +1,9 @@
 # Rust
 /gps_exporter_rs/target/
+/rinex_exporter_rs/target
 *.pdb
 Cargo.lock
+/target
 
 # JetBrains IDEs
 .idea/
@@ -11,6 +13,9 @@ prometheus/data/
 
 # Grafana
 grafana/data/
+
+# RINEX
+rinex_exporter_rs/data
 
 # OS
 .DS_Store
