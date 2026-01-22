@@ -121,7 +121,10 @@ impl GPSSocket {
                 break;
             }
             debug!("Read {} bytes from gpsd", bytes_read);
-            buffer.extend_from_slice(&chunk[..bytes_read]);
+            // SAFETY: We are slicing the chunk to the number of bytes read, which is safe
+            #[allow(clippy::indexing_slicing)]{
+                buffer.extend_from_slice(&chunk[..bytes_read]);
+            }
 
             let lines = buffer.split(|x| *x == b'\n').collect::<Vec<&[u8]>>();
             let incomplete_line = lines.last().map(|l| l.to_vec());

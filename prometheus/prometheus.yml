@@ -136,3 +136,8 @@ scrape_configs:
         labels:
           instance: 'sopdet'
           host: 'sopdet'
+
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['localhost:9091']
